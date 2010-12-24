@@ -28,4 +28,8 @@ public class Room {
     public void speak(String message) throws IOException {
         campfire.post("room/" + id + "/speak.xml", "<message><type>TextMessage</type><body>" + message + "</body></message>");
     }
+
+    public void paste(String message) throws IOException {
+        campfire.post("room/" + id + "/speak.xml", "<message><type>PasteMessage</type><body>" + message + "</body></message>");
+    }
 }

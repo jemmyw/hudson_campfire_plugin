@@ -6,6 +6,15 @@ import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.model.Run;
+import hudson.model.Result;
+import hudson.scm.ChangeLogSet;
+import java.util.List;
+import java.util.ArrayList;
+import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.util.logging.Logger;
 
 import java.io.IOException;
 import org.xml.sax.SAXException;
@@ -46,6 +55,43 @@ public class CampfireNotifier extends Notifier {
             message = message + " (" + hudsonUrl + build.getUrl() + ")";
         }
         room.speak(message);
+
+        hudson.scm.ChangeLogSet changes = build.getChangeSet();
+        StringBuffer changeMessage = new StringBuffer();
+
+        for (Object entryObject : changes) {
+            ChangeLogSet.Entry entry = (ChangeLogSet.Entry)entryObject;
+            changeMessage.append(entry.getMsgAnnotated());
+            changeMessage.append("\n");
+        }
+
+        room.paste(changeMessage.toString());
+
+        if(build.getResult().isWorseThan(Result.SUCCESS)) {
+            List artifacts = build.getArtifacts();
+            for (Object artifactObject : artifacts) {
+                Run.Artifact artifact = (Run.Artifact)artifactObject;
+
+                if(artifact.getFileName().endsWith("failing_examples.txt")) {
+                    BufferedReader reader = null;
+
+                    try {
+                        StringBuffer contents = new StringBuffer();
+                        reader = new BufferedReader(new FileReader(artifact.getFile()));
+                        String text = null;
+
+                        while ((text = reader.readLine()) != null) {
+                            contents.append(text).append("\n");
+                        }
+
+                        room.paste(contents.toString());
+                    } catch(IOException e) {
+                    } finally {
+                        reader.close();
+                    }
+                }
+            }
+        }
     }
 
     private void checkCampfireConnection() throws IOException {
